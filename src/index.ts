@@ -50,7 +50,7 @@ const getFields = (data: any, fields: string[]): any => {
   return result;
 };
 
-const MIN_INTERVAL = 20;
+const MIN_INTERVAL = 16;
 let connected = false;
 
 const clientSettings = new Map<WebSocket, Record<string, ClientSettings>>();
