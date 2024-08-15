@@ -4,11 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "pkg --targets=node20-win-x64 --output=build/irsdk-ws.exe src/index.js"
+    "dev": "nodemon --exec ts-node ./src/index.ts",
+    "test": "jest",
+    "start": "node ./dist/index.js",
+    "build": "tsc && pkg --targets=node20-win-x64 --output=dist/irsdk-ws.exe dist/index.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Alexander Akhilchenok",
+  "license": "MIT",
   "dependencies": {
     "node-irsdk-2023": "github:Alexander-2049/node-irsdk-2023",
     "ws": "^8.18.0"
@@ -19,6 +22,14 @@
     ]
   },
   "devDependencies": {
-    "@yao-pkg/pkg": "^5.12.1"
+    "@types/ws": "^8.5.12",
+    "@yao-pkg/pkg": "^5.12.1",
+    "@jest/globals": "^29.7.0",
+    "@types/node": "^20.9.0",
+    "nodemon": "^3.0.1",
+    "ts-jest": "^29.1.1",
+    "ts-loader": "^9.5.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
   }
 }
