@@ -1,5 +1,6 @@
 import WebSocket, * as ws from "ws";
 import irsdk from "node-irsdk-2023";
+import JsIrSdk from "node-irsdk-2023/src/JsIrSdk";
 
 interface ClientSettings {
   requestedFields: string[];
@@ -19,7 +20,7 @@ const MIN_INTERVAL = 16;
 const PORT = 4000;
 let connected = false;
 
-const iracing = irsdk.init({ telemetryUpdateInterval: 100 });
+const iracing = irsdk.init({ telemetryUpdateInterval: MIN_INTERVAL });
 const wss = new ws.WebSocketServer({ port: PORT });
 
 const getFields = (data: any, fields: string[]): any => {
@@ -73,7 +74,8 @@ const setIntervalForClient = (
   ws: WebSocket,
   type: string,
   settings: ClientSettings,
-  iracingData: any
+  iracing: JsIrSdk,
+  field: "telemetry" | "telemetryDescription" | "sessionInfo"
 ): void => {
   const interval =
     settings.sendInterval >= MIN_INTERVAL ? settings.sendInterval : 0;
@@ -83,7 +85,7 @@ const setIntervalForClient = (
   if (interval > 0) {
     settings.intervalId = setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
-        const result = getFields(iracingData, settings.requestedFields);
+        const result = getFields(iracing[field], settings.requestedFields);
         ws.send(JSON.stringify({ [type]: result }));
       } else {
         clearInterval(settings.intervalId as NodeJS.Timeout);
@@ -148,7 +150,8 @@ wss.on("connection", (ws: WebSocket) => {
         ws,
         "sessionInfo",
         settings.sessionInfo,
-        iracing.sessionInfo
+        iracing,
+        "sessionInfo"
       );
     }
 
@@ -161,7 +164,8 @@ wss.on("connection", (ws: WebSocket) => {
         ws,
         "telemetryDescription",
         settings.telemetryDescription,
-        iracing.telemetryDescription
+        iracing,
+        "telemetryDescription"
       );
     }
 
@@ -172,7 +176,8 @@ wss.on("connection", (ws: WebSocket) => {
         ws,
         "telemetry",
         settings.telemetry,
-        iracing.telemetry
+        iracing,
+        "telemetry"
       );
     }
 
