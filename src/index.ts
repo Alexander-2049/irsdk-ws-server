@@ -15,8 +15,12 @@ interface ParsedMessage {
   getAll?: boolean;
 }
 
+const MIN_INTERVAL = 16;
+const PORT = 4000;
+let connected = false;
+
 const iracing = irsdk.init({ telemetryUpdateInterval: 100 });
-const wss = new ws.WebSocketServer({ port: 8080 });
+const wss = new ws.WebSocketServer({ port: PORT });
 
 const getFields = (data: any, fields: string[]): any => {
   const result: Record<string, any> = {};
@@ -49,9 +53,6 @@ const getFields = (data: any, fields: string[]): any => {
 
   return result;
 };
-
-const MIN_INTERVAL = 16;
-let connected = false;
 
 const clientSettings = new Map<WebSocket, Record<string, ClientSettings>>();
 
@@ -227,7 +228,7 @@ iracing.on("Disconnected", () => {
   broadcast({ connected: false });
 });
 
-console.log("WebSocket server is listening on ws://localhost:8080");
+console.log("WebSocket server is listening on ws://localhost:" + PORT);
 
 process.on("uncaughtException", (err: Error) => {
   console.error("There was an uncaught error", err);
