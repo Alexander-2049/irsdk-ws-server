@@ -2,6 +2,21 @@ import WebSocket, * as ws from "ws";
 import irsdk from "node-irsdk-2023";
 import JsIrSdk from "node-irsdk-2023/src/JsIrSdk";
 
+let PORT = 4000;
+
+let prevArgument: string = "";
+process.argv.forEach(function (val) {
+  val = val.toLowerCase();
+  if (prevArgument === "--port" || prevArgument === "-p") {
+    const receivedValue = new Number(val).valueOf();
+    if (isNaN(receivedValue)) throw new Error("Port value is not a number");
+    if (receivedValue > 65534)
+      throw new Error("Port must be in range >= 1 && <= 65534");
+    else PORT = Math.floor(receivedValue);
+  }
+  prevArgument = val;
+});
+
 interface ClientSettings {
   requestedFields: string[];
   sendInterval: number;
@@ -17,7 +32,6 @@ interface ParsedMessage {
 }
 
 const MIN_INTERVAL = 16;
-const PORT = 4000;
 let connected = false;
 
 const iracing = irsdk.init({ telemetryUpdateInterval: MIN_INTERVAL });
