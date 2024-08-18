@@ -28,7 +28,7 @@ interface ParsedMessage {
   telemetry?: ClientSettings;
   telemetryDescription?: ClientSettings;
   update?: boolean;
-  getAll?: boolean;
+  get?: string;
 }
 
 const MIN_INTERVAL = 16;
@@ -144,7 +144,7 @@ wss.on("connection", (ws: WebSocket) => {
       return;
     }
 
-    const { sessionInfo, telemetry, update, getAll } = parsedMessage;
+    const { sessionInfo, telemetry, update, get } = parsedMessage;
 
     if (sessionInfo?.requestedFields) {
       settings.sessionInfo.requestedFields = sessionInfo.requestedFields;
@@ -184,13 +184,27 @@ wss.on("connection", (ws: WebSocket) => {
       ws.send(JSON.stringify(result));
     }
 
-    if (getAll) {
-      const result = {
-        sessionInfo: iracing.sessionInfo,
-        telemetry: iracing.telemetry,
-        telemetryDescription: iracing.telemetryDescription,
-      };
-      ws.send(JSON.stringify(result));
+    if (get && typeof get === "string") {
+      if (get === "all") {
+        const result = {
+          sessionInfo: iracing.sessionInfo,
+          telemetry: iracing.telemetry,
+          telemetryDescription: iracing.telemetryDescription,
+        };
+        ws.send(JSON.stringify(result));
+      } else if (get === "sessionInfo") {
+        const { sessionInfo } = iracing;
+        const result = { sessionInfo };
+        ws.send(JSON.stringify(result));
+      } else if (get === "telemetry") {
+        const { telemetry } = iracing;
+        const result = { telemetry };
+        ws.send(JSON.stringify(result));
+      } else if (get === "telemetryDescription") {
+        const { telemetryDescription } = iracing;
+        const result = { telemetryDescription };
+        ws.send(JSON.stringify(result));
+      }
     }
   });
 
