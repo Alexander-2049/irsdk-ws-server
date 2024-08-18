@@ -89,7 +89,7 @@ const setIntervalForClient = (
   type: string,
   settings: ClientSettings,
   iracing: JsIrSdk,
-  field: "telemetry" | "telemetryDescription" | "sessionInfo"
+  field: "telemetry" | "sessionInfo"
 ): void => {
   const interval =
     settings.sendInterval >= MIN_INTERVAL ? settings.sendInterval : 0;
@@ -122,19 +122,9 @@ wss.on("connection", (ws: WebSocket) => {
       sendInterval: number;
       intervalId: null | NodeJS.Timeout;
     };
-    telemetryDescription: {
-      requestedFields: string[];
-      sendInterval: number;
-      intervalId: null | NodeJS.Timeout;
-    };
   } = {
     sessionInfo: { requestedFields: [], sendInterval: 0, intervalId: null },
     telemetry: { requestedFields: [], sendInterval: 0, intervalId: null },
-    telemetryDescription: {
-      requestedFields: [],
-      sendInterval: 0,
-      intervalId: null,
-    },
   };
 
   clientSettings.set(ws, settings);
@@ -154,8 +144,7 @@ wss.on("connection", (ws: WebSocket) => {
       return;
     }
 
-    const { sessionInfo, telemetryDescription, telemetry, update, getAll } =
-      parsedMessage;
+    const { sessionInfo, telemetry, update, getAll } = parsedMessage;
 
     if (sessionInfo?.requestedFields) {
       settings.sessionInfo.requestedFields = sessionInfo.requestedFields;
@@ -166,20 +155,6 @@ wss.on("connection", (ws: WebSocket) => {
         settings.sessionInfo,
         iracing,
         "sessionInfo"
-      );
-    }
-
-    if (telemetryDescription?.requestedFields) {
-      settings.telemetryDescription.requestedFields =
-        telemetryDescription.requestedFields;
-      settings.telemetryDescription.sendInterval =
-        telemetryDescription.sendInterval || 0;
-      setIntervalForClient(
-        ws,
-        "telemetryDescription",
-        settings.telemetryDescription,
-        iracing,
-        "telemetryDescription"
       );
     }
 
@@ -205,10 +180,6 @@ wss.on("connection", (ws: WebSocket) => {
           iracing.telemetry,
           settings.telemetry.requestedFields
         ),
-        telemetryDescription: getFields(
-          iracing.telemetryDescription,
-          settings.telemetryDescription.requestedFields
-        ),
       };
       ws.send(JSON.stringify(result));
     }
@@ -228,8 +199,6 @@ wss.on("connection", (ws: WebSocket) => {
       clearInterval(settings.sessionInfo.intervalId);
     if (settings.telemetry.intervalId)
       clearInterval(settings.telemetry.intervalId);
-    if (settings.telemetryDescription.intervalId)
-      clearInterval(settings.telemetryDescription.intervalId);
 
     clientSettings.delete(ws);
   });
