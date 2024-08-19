@@ -3,19 +3,33 @@ import irsdk from "node-irsdk-2023";
 import JsIrSdk from "node-irsdk-2023/src/JsIrSdk";
 
 let PORT = 4000;
+let MIN_INTERVAL = 16;
 
 let prevArgument: string = "";
 process.argv.forEach(function (val) {
   val = val.toLowerCase();
   if (prevArgument === "--port" || prevArgument === "-p") {
     const receivedValue = new Number(val).valueOf();
-    if (isNaN(receivedValue)) throw new Error("Port value is not a number");
-    if (receivedValue > 65534)
-      throw new Error("Port must be in range >= 1 && <= 65534");
+    if (isNaN(receivedValue))
+      throw new Error("[--port / -p] value is not a number");
+    if (receivedValue > 65534 || receivedValue < 1)
+      throw new Error("[--port / -p] must be in range >= 1 && <= 65534");
     else PORT = Math.floor(receivedValue);
+  }
+  if (prevArgument === "--interval" || prevArgument === "-i") {
+    const receivedValue = new Number(val).valueOf();
+    if (isNaN(receivedValue))
+      throw new Error("[--interval / -i] value is not a number");
+    if (receivedValue < 1) throw new Error("[--interval / -i] must be > 0");
+    if (receivedValue > 1000) {
+      console.warn("NOTICE: [--interval / -i] value is in milliseconds");
+    } else MIN_INTERVAL = Math.floor(receivedValue);
   }
   prevArgument = val;
 });
+
+console.log("PORT: " + PORT);
+console.log("TELEMETRY UPDATE INTERVAL: " + MIN_INTERVAL);
 
 interface ClientSettings {
   requestedFields: string[];
@@ -31,7 +45,6 @@ interface ParsedMessage {
   get?: string;
 }
 
-const MIN_INTERVAL = 16;
 let connected = false;
 
 const iracing = irsdk.init({ telemetryUpdateInterval: MIN_INTERVAL });
