@@ -80,7 +80,7 @@ Clients can request to retrieve all available data for `sessionInfo`, `telemetry
   Example message to retrieve all data:
   ```json
   {
-    "get": { "all", "sessionInfo", "telemetry", "telemetryDescription" }
+    "get": /* "all" | "sessionInfo" | "telemetry" | "telemetryDescription" */
   }
   ```
 
