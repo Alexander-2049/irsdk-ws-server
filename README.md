@@ -30,7 +30,7 @@ Once connected, the client will immediately receive the iRacing connection statu
 
 ### 1. Request Specific Data Fields
 
-Clients can request specific fields from either `sessionInfo`, `telemetry`, or `telemetryDescription`. They can also specify how frequently they want to receive updates. The `sendInterval` must be set to `20ms` or higher.
+Clients can request specific fields from either `sessionInfo`, `telemetry`, or `telemetryDescription`. They can also specify how frequently they want to receive updates. The `sendInterval` must be set to `16ms` or higher.
 
 - **Request Session Info Fields**  
   Example message to request specific session info fields:
