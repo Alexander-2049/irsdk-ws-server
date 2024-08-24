@@ -19,7 +19,12 @@ The server can be configured using the following command-line arguments:
 ### Example Usage
 
 ```bash
-node server.js --port 8080 --telemetry-interval 10 --session-info-interval 50
+npm install
+npm run build
+# javascript file
+node dist/index.js --port 8080 --telemetry-interval 10 --session-info-interval 50
+# executable
+dist/irsdk-wss.exe --port 8080 --telemetry-interval 10 --session-info-interval 50
 ```
 
 ## WebSocket API
