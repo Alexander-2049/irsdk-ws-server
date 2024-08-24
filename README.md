@@ -88,29 +88,31 @@ Clients can request specific session information fields by sending a `sessionInf
 
 ```json
 {
-  "WeekendInfo": {
-    "TrackName": "lagunaseca",
-    "TrackID": 47,
-    "TrackLength": "3.57 km",
-    "TrackDisplayName": "WeatherTech Raceway Laguna Seca",
-    "TrackCity": "Salinas",
-    "TrackCountry": "USA",
-    "TrackWeatherType": "Static",
-    "TrackSkies": "Partly Cloudy",
-    "TrackSurfaceTemp": "40.36 C",
-    "TrackAirTemp": "26.11 C",
-    "TrackAirPressure": "29.16 Hg",
-    "TrackWindVel": "0.89 m/s",
-    "TrackWindDir": "0.00 rad",
-    "TrackRelativeHumidity": "45 %",
-    "TrackFogLevel": "0 %",
-    "TrackPrecipitation": "0 %",
-    "WeekendOptions": {
-      "NumStarters": 0,
-      "WeatherType": "Static",
-      "Skies": "Partly Cloudy",
-      "TimeOfDay": "3:06 pm",
-      "Date": "2024-05-15T00:00:00.000Z"
+  "sessionInfo": {
+    "WeekendInfo": {
+      "TrackName": "lagunaseca",
+      "TrackID": 47,
+      "TrackLength": "3.57 km",
+      "TrackDisplayName": "WeatherTech Raceway Laguna Seca",
+      "TrackCity": "Salinas",
+      "TrackCountry": "USA",
+      "TrackWeatherType": "Static",
+      "TrackSkies": "Partly Cloudy",
+      "TrackSurfaceTemp": "40.36 C",
+      "TrackAirTemp": "26.11 C",
+      "TrackAirPressure": "29.16 Hg",
+      "TrackWindVel": "0.89 m/s",
+      "TrackWindDir": "0.00 rad",
+      "TrackRelativeHumidity": "45 %",
+      "TrackFogLevel": "0 %",
+      "TrackPrecipitation": "0 %",
+      "WeekendOptions": {
+        "NumStarters": 0,
+        "WeatherType": "Static",
+        "Skies": "Partly Cloudy",
+        "TimeOfDay": "3:06 pm",
+        "Date": "2024-05-15T00:00:00.000Z"
+      }
     }
   }
 }
@@ -139,12 +141,14 @@ You can also request nested fields within session info by specifying the path to
 
 ```json
 {
-  "WeekendInfo": {
-    "TrackName": "lagunaseca",
-    "TrackDisplayName": "WeatherTech Raceway Laguna Seca",
-    "BuildVersion": "2024.08.01.01",
-    "WeekendOptions": {
-      "NumStarters": 0
+  "sessionInfo": {
+    "WeekendInfo": {
+      "TrackName": "lagunaseca",
+      "TrackDisplayName": "WeatherTech Raceway Laguna Seca",
+      "BuildVersion": "2024.08.01.01",
+      "WeekendOptions": {
+        "NumStarters": 0
+      }
     }
   }
 }
