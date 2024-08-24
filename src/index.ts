@@ -1,7 +1,6 @@
 import * as ws from "ws";
 import irsdk from "node-irsdk-2023";
 import { getExecutionArguments, getFields } from "./utils";
-import { SessionInfoEvent, TelemetryEvent } from "node-irsdk-2023/src/JsIrSdk";
 import { ClientSettings, WebSocketWithSettings } from "./types";
 
 const { PORT, SESSION_INFO_UPDATE_INTERVAL, TELEMETRY_UPDATE_INTERVAL } =
@@ -96,7 +95,7 @@ wss.on("connection", (socket: WebSocketWithSettings) => {
   });
 });
 
-iracing.on("Telemetry", (telemetryEvent: TelemetryEvent) => {
+iracing.on("Telemetry", (telemetryEvent) => {
   wss.clients.forEach((socket) => {
     const clientSettings =
       (socket as unknown as WebSocketWithSettings)?.settings ||
@@ -111,7 +110,7 @@ iracing.on("Telemetry", (telemetryEvent: TelemetryEvent) => {
   });
 });
 
-iracing.on("SessionInfo", (sessionEvent: SessionInfoEvent) => {
+iracing.on("SessionInfo", (sessionEvent) => {
   wss.clients.forEach((socket) => {
     socket.send(JSON.stringify({ sessionInfo: sessionEvent }));
   });
