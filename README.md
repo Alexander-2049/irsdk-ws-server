@@ -1,180 +1,155 @@
-# WebSocket API Documentation
+# IRSDK WebSocket Server Documentation
 
-This WebSocket server provides real-time access to iRacing data. Clients can request specific fields for updates, control the frequency of data transmission, and receive connection status updates.
+## Overview
 
-## Table of Contents
+The IRSDK WebSocket Server allows you to receive real-time telemetry and session information from the iRacing simulator through a WebSocket connection. Clients can connect to the server, request specific fields of data, and receive updates as the simulation runs.
 
-- [Connection](#connection)
-- [Requests](#requests)
-  - [Request Specific Data Fields](#request-specific-data-fields)
-  - [Immediate Data Update](#immediate-data-update)
-  - [Retrieve All Data](#retrieve-all-data)
-- [Response Examples](#response-examples)
-- [Error Handling](#error-handling)
+This documentation provides details on how to interact with the server, including how to connect, send requests, and process the responses.
 
-## Connection
+## Server Configuration
 
-Clients connect to the WebSocket server at:
+### Execution Arguments
 
+The server can be configured using the following command-line arguments:
+
+- **`--port` or `-p`**: Specifies the port on which the WebSocket server will run. Defaults to `4000`.
+- **`--telemetry-interval` or `-ti`**: Sets the interval (in milliseconds) at which telemetry data is updated. Defaults to `4ms`.
+- **`--session-info-interval` or `-si`**: Sets the interval (in milliseconds) at which session information is updated. Defaults to `16ms`.
+
+### Example Usage
+
+```bash
+node server.js --port 8080 --telemetry-interval 10 --session-info-interval 50
 ```
-ws://localhost:4000
+
+## WebSocket API
+
+### Connecting to the Server
+
+To connect to the IRSDK WebSocket Server, establish a WebSocket connection to the server using the configured port:
+
+```javascript
+const socket = new WebSocket("ws://localhost:4000");
 ```
 
-Once connected, the client will immediately receive the iRacing connection status as follows:
+Upon connection, the server will send an initial message indicating the connection status and the current telemetry and session info data.
+
+### Messages
+
+Clients can send JSON messages to the server to request specific telemetry or session information fields. The server will respond with the requested data in real-time as the simulation progresses.
+
+### Telemetry Request
+
+Clients can request specific telemetry data fields by sending a `telemetry` request message. The server will respond with the current values for those fields.
+
+#### Request Example
 
 ```json
-{ "connected": true | false }
+{
+  "telemetry": {
+    "requestedFields": ["Throttle", "Brake", "RPM", "Gear"]
+  }
+}
 ```
 
-## Requests
+#### Response Example
 
-### 1. Request Specific Data Fields
+```json
+{
+  "telemetry": {
+    "Throttle": 0,
+    "Brake": 1,
+    "RPM": 2947.270263671875,
+    "Gear": 0
+  }
+}
+```
 
-Clients can request specific fields from either `sessionInfo`, `telemetry`, or `telemetryDescription`. They can also specify how frequently they want to receive updates. The `sendInterval` must be set to `16ms` or higher.
+### Session Info Request
 
-- **Request Session Info Fields**  
-  Example message to request specific session info fields:
+Clients can request specific session information fields by sending a `sessionInfo` request message. The server will respond with the current values for those fields.
 
-  ```json
-  {
-    "sessionInfo": {
-      "requestedFields": [
-        "data.WeekendInfo.TrackDisplayName",
-        "data.WeekendInfo.TrackCountry",
-        "data.DriverInfo.Drivers"
-      ],
-      "sendInterval": 200
+#### Request Example
+
+```json
+{
+  "sessionInfo": {
+    "requestedFields": ["WeekendInfo"]
+  }
+}
+```
+
+#### Response Example
+
+```json
+{
+  "WeekendInfo": {
+    "TrackName": "lagunaseca",
+    "TrackID": 47,
+    "TrackLength": "3.57 km",
+    "TrackDisplayName": "WeatherTech Raceway Laguna Seca",
+    "TrackCity": "Salinas",
+    "TrackCountry": "USA",
+    "TrackWeatherType": "Static",
+    "TrackSkies": "Partly Cloudy",
+    "TrackSurfaceTemp": "40.36 C",
+    "TrackAirTemp": "26.11 C",
+    "TrackAirPressure": "29.16 Hg",
+    "TrackWindVel": "0.89 m/s",
+    "TrackWindDir": "0.00 rad",
+    "TrackRelativeHumidity": "45 %",
+    "TrackFogLevel": "0 %",
+    "TrackPrecipitation": "0 %",
+    "WeekendOptions": {
+      "NumStarters": 0,
+      "WeatherType": "Static",
+      "Skies": "Partly Cloudy",
+      "TimeOfDay": "3:06 pm",
+      "Date": "2024-05-15T00:00:00.000Z"
     }
   }
-  ```
+}
+```
 
-- **Request Telemetry Fields**  
-   Example message to request specific telemetry fields:
+### Nested Field Requests
 
-  ```json
-  {
-    "telemetry": {
-      "requestedFields": ["values.Throttle", "values.Brake"],
-      "sendInterval": 16
+You can also request nested fields within session info by specifying the path to the field using dot notation.
+
+#### Request Example
+
+```json
+{
+  "sessionInfo": {
+    "requestedFields": [
+      "WeekendInfo.TrackName",
+      "WeekendInfo.TrackDisplayName",
+      "WeekendInfo.BuildVersion",
+      "WeekendInfo.WeekendOptions.NumStarters"
+    ]
+  }
+}
+```
+
+#### Response Example
+
+```json
+{
+  "WeekendInfo": {
+    "TrackName": "lagunaseca",
+    "TrackDisplayName": "WeatherTech Raceway Laguna Seca",
+    "BuildVersion": "2024.08.01.01",
+    "WeekendOptions": {
+      "NumStarters": 0
     }
   }
-  ```
+}
+```
 
-### 2. Immediate Data Update
+### Handling Errors
 
-Clients can request an immediate update of the currently requested fields without specifying an interval. This request provides a one-time snapshot of the requested data.
+If the server receives an invalid JSON message or an unrecognized field request, it will respond with an error message.
 
-- **Request Immediate Update**  
-  Example message to request immediate update:
-  ```json
-  {
-    "update": true
-  }
-  ```
-
-### 3. Retrieve Data
-
-Clients can request to retrieve all available data for `sessionInfo`, `telemetry`, and `telemetryDescription` in a single request.
-
-- **Request Available Data**  
-  Example message to retrieve all data:
-  ```json
-  {
-    "get": /* "all" | "sessionInfo" | "telemetry" | "telemetryDescription" */
-  }
-  ```
-
-## Response Examples
-
-The WebSocket server responds with the requested data in real-time, depending on the fields and intervals specified. Below are examples of responses that clients might receive.
-
-- **Connection Status**  
-  Sent automatically upon connection or when iRacing's status changes:
-
-  ```json
-  { "connected": true }
-  ```
-
-- **Requested Session Info Data**  
-  Response when session info data is sent based on the requested fields:
-
-  ```json
-  {
-    "sessionInfo": {
-      "DriverInfo": {
-        /* driver info data */
-      },
-      "SessionTime": 1203.57
-    }
-  }
-  ```
-
-- **Requested Telemetry Data**  
-   Response when telemetry data is sent based on the requested fields:
-
-  ```json
-  {
-    "telemetry": {
-      "values": {
-        "Throttle": 0,
-        "RPM": 2947.269287109375,
-        "PlayerCarSLFirstRPM": 6000,
-        "PlayerCarSLLastRPM": 7500,
-        "PlayerCarSLBlinkRPM": 7900
-      }
-    }
-  }
-  ```
-
-- **Requested Telemetry Description Data**  
-   Response when telemetry description data is sent based on the requested fields:
-
-  ```json
-  {
-    "SessionTime": {
-      "name": "SessionTime",
-      "desc": "Seconds since session start",
-      "unit": "s",
-      "count": 1,
-      "type": "double"
-    },
-    "SessionTick": {
-      "name": "SessionTick",
-      "desc": "Current update number",
-      "unit": "",
-      "count": 1,
-      "type": "int"
-    },
-    "SessionNum": {
-      "name": "SessionNum",
-      "desc": "Session number",
-      "unit": "",
-      "count": 1,
-      "type": "int"
-    },
-    { /* ... */ }
-  }
-  ```
-
-- **Full Data Update**  
-  Response when a full data update is requested:
-  ```json
-  {
-    "sessionInfo": {
-      /* full session info */
-    },
-    "telemetry": {
-      /* full telemetry data */
-    },
-    "telemetryDescription": {
-      /* full telemetry description */
-    }
-  }
-  ```
-
-## Error Handling
-
-In case the client sends invalid JSON data, the server responds with the following error message:
+#### Error Response Example
 
 ```json
 {
@@ -183,12 +158,30 @@ In case the client sends invalid JSON data, the server responds with the followi
 }
 ```
 
-If the client attempts to set an interval lower than `16ms`, the server automatically stops sending updates for that data type (interval will be treated as `0`).
+### Connection Status
+
+The server broadcasts connection status updates to all connected clients whenever the iRacing simulator connects or disconnects.
+
+#### Connected Status Example
 
 ```json
 {
-  "telemetry": {
-    "sendInterval": 0
-  }
+  "connected": true
 }
 ```
+
+#### Disconnected Status Example
+
+```json
+{
+  "connected": false
+}
+```
+
+## Handling Unhandled Exceptions and Rejections
+
+The server is equipped with error handling to catch uncaught exceptions and unhandled promise rejections. If such an error occurs, the server will log the error and terminate the process to prevent further issues.
+
+## Conclusion
+
+The IRSDK WebSocket Server provides a flexible and powerful way to access real-time telemetry and session information from the iRacing simulator. By connecting to the server and sending requests for specific fields, clients can receive the data they need with minimal latency.

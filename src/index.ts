@@ -1,154 +1,55 @@
-import WebSocket, * as ws from "ws";
+import * as ws from "ws";
 import irsdk from "node-irsdk-2023";
-import JsIrSdk from "node-irsdk-2023/src/JsIrSdk";
+import { getExecutionArguments, getFields } from "./utils";
+import { SessionInfoEvent, TelemetryEvent } from "node-irsdk-2023/src/JsIrSdk";
+import { ClientSettings, WebSocketWithSettings } from "./types";
 
-let PORT = 4000;
-let MIN_INTERVAL = 16;
+const { PORT, SESSION_INFO_UPDATE_INTERVAL, TELEMETRY_UPDATE_INTERVAL } =
+  getExecutionArguments();
 
-let prevArgument: string = "";
-process.argv.forEach(function (val) {
-  val = val.toLowerCase();
-  if (prevArgument === "--port" || prevArgument === "-p") {
-    const receivedValue = new Number(val).valueOf();
-    if (isNaN(receivedValue))
-      throw new Error("[--port / -p] value is not a number");
-    if (receivedValue > 65534 || receivedValue < 1)
-      throw new Error("[--port / -p] must be in range >= 1 && <= 65534");
-    else PORT = Math.floor(receivedValue);
-  }
-  if (prevArgument === "--interval" || prevArgument === "-i") {
-    const receivedValue = new Number(val).valueOf();
-    if (isNaN(receivedValue))
-      throw new Error("[--interval / -i] value is not a number");
-    if (receivedValue < 1) throw new Error("[--interval / -i] must be > 0");
-    if (receivedValue > 1000) {
-      console.warn("NOTICE: [--interval / -i] value is in milliseconds");
-    } else MIN_INTERVAL = Math.floor(receivedValue);
-  }
-  prevArgument = val;
+console.log("[IRSDK-WEBSOCKET-SERVER] PORT: " + PORT);
+console.log(
+  "[IRSDK-WEBSOCKET-SERVER] TELEMETRY UPDATE INTERVAL: " +
+    TELEMETRY_UPDATE_INTERVAL +
+    "ms"
+);
+console.log(
+  "[IRSDK-WEBSOCKET-SERVER] SESSION INFO UPDATE INTERVAL: " +
+    SESSION_INFO_UPDATE_INTERVAL +
+    "ms"
+);
+
+let connectionStatus = false;
+
+const iracing = irsdk.init({
+  telemetryUpdateInterval: TELEMETRY_UPDATE_INTERVAL,
+  sessionInfoUpdateInterval: SESSION_INFO_UPDATE_INTERVAL,
 });
-
-console.log("PORT: " + PORT);
-console.log("TELEMETRY UPDATE INTERVAL: " + MIN_INTERVAL);
-
-interface ClientSettings {
-  requestedFields: string[];
-  sendInterval: number;
-  intervalId: NodeJS.Timeout | null;
-}
-
-interface ParsedMessage {
-  sessionInfo?: ClientSettings;
-  telemetry?: ClientSettings;
-  telemetryDescription?: ClientSettings;
-  update?: boolean;
-  get?: string;
-}
-
-let connected = false;
-
-const iracing = irsdk.init({ telemetryUpdateInterval: MIN_INTERVAL });
 const wss = new ws.WebSocketServer({ port: PORT });
 
-const getFields = (data: any, fields: string[]): any => {
-  const result: Record<string, any> = {};
-
-  fields.forEach((field: string) => {
-    const parts = field.split(".");
-    let current: any = data;
-    let currentResult: any = result;
-
-    parts.forEach((part: string, index: number) => {
-      if (current && current[part] !== undefined) {
-        if (index === parts.length - 1) {
-          currentResult[part] = current[part];
-        } else {
-          currentResult[part] = currentResult[part] || {};
-          currentResult = currentResult[part];
-          current = current[part];
-        }
-      } else {
-        if (index === parts.length - 1) {
-          currentResult[part] = null;
-        } else {
-          currentResult[part] = currentResult[part] || {};
-          currentResult = currentResult[part];
-        }
-        return;
-      }
-    });
-  });
-
-  return result;
+const defaultClientSettings = {
+  sessionInfo: { requestedFields: [] },
+  telemetry: { requestedFields: [] },
 };
 
-const clientSettings = new Map<WebSocket, Record<string, ClientSettings>>();
+wss.on("connection", (socket: WebSocketWithSettings) => {
+  socket.send(JSON.stringify({ connected: connectionStatus }));
+  socket.send(
+    JSON.stringify({
+      telemetry: iracing.telemetry?.values || null,
+      sessionInfo: iracing.sessionInfo?.data || null,
+    })
+  );
 
-const broadcast = (data: any): void => {
-  const message = JSON.stringify(data);
-  clientSettings.forEach((settings, ws) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      try {
-        ws.send(message);
-      } catch (error) {
-        console.error("Error broadcasting message:", error);
-      }
-    }
-  });
-};
+  socket.settings = defaultClientSettings;
 
-const setIntervalForClient = (
-  ws: WebSocket,
-  type: string,
-  settings: ClientSettings,
-  iracing: JsIrSdk,
-  field: "telemetry" | "sessionInfo"
-): void => {
-  const interval =
-    settings.sendInterval >= MIN_INTERVAL ? settings.sendInterval : 0;
-
-  if (settings.intervalId) clearInterval(settings.intervalId);
-
-  if (interval > 0) {
-    settings.intervalId = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        const result = getFields(iracing[field], settings.requestedFields);
-        ws.send(JSON.stringify({ [type]: result }));
-      } else {
-        clearInterval(settings.intervalId as NodeJS.Timeout);
-      }
-    }, interval);
-  }
-};
-
-wss.on("connection", (ws: WebSocket) => {
-  ws.send(JSON.stringify({ connected }));
-
-  const settings: {
-    sessionInfo: {
-      requestedFields: string[];
-      sendInterval: number;
-      intervalId: null | NodeJS.Timeout;
-    };
-    telemetry: {
-      requestedFields: string[];
-      sendInterval: number;
-      intervalId: null | NodeJS.Timeout;
-    };
-  } = {
-    sessionInfo: { requestedFields: [], sendInterval: 0, intervalId: null },
-    telemetry: { requestedFields: [], sendInterval: 0, intervalId: null },
-  };
-
-  clientSettings.set(ws, settings);
-
-  ws.on("message", (message: string) => {
-    let parsedMessage: ParsedMessage;
+  socket.on("message", (message: string) => {
+    let parsedMessage: ClientSettings;
 
     try {
       parsedMessage = JSON.parse(message);
     } catch (e) {
-      ws.send(
+      socket.send(
         JSON.stringify({
           error: true,
           message: "Invalid JSON",
@@ -157,90 +58,79 @@ wss.on("connection", (ws: WebSocket) => {
       return;
     }
 
-    const { sessionInfo, telemetry, update, get } = parsedMessage;
-
-    if (sessionInfo?.requestedFields) {
-      settings.sessionInfo.requestedFields = sessionInfo.requestedFields;
-      settings.sessionInfo.sendInterval = sessionInfo.sendInterval || 0;
-      setIntervalForClient(
-        ws,
-        "sessionInfo",
-        settings.sessionInfo,
-        iracing,
-        "sessionInfo"
-      );
+    if (
+      Array.isArray(parsedMessage?.telemetry?.requestedFields) &&
+      socket.settings
+    ) {
+      socket.settings.telemetry.requestedFields =
+        parsedMessage.telemetry.requestedFields;
+      if (iracing.telemetry) {
+        socket.send(
+          JSON.stringify(
+            getFields(
+              iracing.telemetry.values,
+              parsedMessage.telemetry.requestedFields
+            )
+          )
+        );
+      }
     }
 
-    if (telemetry?.requestedFields) {
-      settings.telemetry.requestedFields = telemetry.requestedFields;
-      settings.telemetry.sendInterval = telemetry.sendInterval || 0;
-      setIntervalForClient(
-        ws,
-        "telemetry",
-        settings.telemetry,
-        iracing,
-        "telemetry"
-      );
-    }
-
-    if (update) {
-      const result = {
-        sessionInfo: getFields(
-          iracing.sessionInfo,
-          settings.sessionInfo.requestedFields
-        ),
-        telemetry: getFields(
-          iracing.telemetry,
-          settings.telemetry.requestedFields
-        ),
-      };
-      ws.send(JSON.stringify(result));
-    }
-
-    if (get && typeof get === "string") {
-      if (get === "all") {
-        const result = {
-          sessionInfo: iracing.sessionInfo,
-          telemetry: iracing.telemetry,
-          telemetryDescription: iracing.telemetryDescription,
-        };
-        ws.send(JSON.stringify(result));
-      } else if (get === "sessionInfo") {
-        const { sessionInfo } = iracing;
-        const result = { sessionInfo };
-        ws.send(JSON.stringify(result));
-      } else if (get === "telemetry") {
-        const { telemetry } = iracing;
-        const result = { telemetry };
-        ws.send(JSON.stringify(result));
-      } else if (get === "telemetryDescription") {
-        const { telemetryDescription } = iracing;
-        const result = { telemetryDescription };
-        ws.send(JSON.stringify(result));
+    if (
+      Array.isArray(parsedMessage?.sessionInfo?.requestedFields) &&
+      socket.settings
+    ) {
+      socket.settings.sessionInfo.requestedFields =
+        parsedMessage.sessionInfo.requestedFields;
+      if (iracing.sessionInfo) {
+        socket.send(
+          JSON.stringify(
+            getFields(
+              iracing.sessionInfo.data,
+              parsedMessage.sessionInfo.requestedFields
+            )
+          )
+        );
       }
     }
   });
+});
 
-  ws.on("close", () => {
-    if (settings.sessionInfo.intervalId)
-      clearInterval(settings.sessionInfo.intervalId);
-    if (settings.telemetry.intervalId)
-      clearInterval(settings.telemetry.intervalId);
+iracing.on("Telemetry", (telemetryEvent: TelemetryEvent) => {
+  wss.clients.forEach((socket) => {
+    const clientSettings =
+      (socket as unknown as WebSocketWithSettings)?.settings ||
+      defaultClientSettings;
 
-    clientSettings.delete(ws);
+    if (clientSettings.telemetry.requestedFields.length === 0) return;
+    const fields = getFields(
+      telemetryEvent.data,
+      clientSettings.telemetry.requestedFields
+    );
+    socket.send(JSON.stringify({ telemetry: fields }));
+  });
+});
+
+iracing.on("SessionInfo", (sessionEvent: SessionInfoEvent) => {
+  wss.clients.forEach((socket) => {
+    socket.send(JSON.stringify({ sessionInfo: sessionEvent }));
   });
 });
 
 iracing.on("Connected", () => {
-  console.log("iRacing connected..");
-  connected = true;
-  broadcast({ connected: true });
+  connectionStatus = true;
+
+  wss.clients.forEach((socket) => {
+    socket.send(JSON.stringify({ connected: connectionStatus }));
+  });
 });
 
 iracing.on("Disconnected", () => {
-  console.log("iRacing disconnected..");
-  connected = false;
-  broadcast({ connected: false });
+  connectionStatus = false;
+
+  wss.clients.forEach((socket) => {
+    socket.send(JSON.stringify({ connected: connectionStatus }));
+  });
 });
 
 console.log("WebSocket server is listening on ws://localhost:" + PORT);
