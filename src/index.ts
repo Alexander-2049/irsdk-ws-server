@@ -65,12 +65,12 @@ wss.on("connection", (socket: WebSocketWithSettings) => {
         parsedMessage.telemetry.requestedFields;
       if (iracing.telemetry) {
         socket.send(
-          JSON.stringify(
-            getFields(
+          JSON.stringify({
+            telemetry: getFields(
               iracing.telemetry.values,
               parsedMessage.telemetry.requestedFields
-            )
-          )
+            ),
+          })
         );
       }
     }
@@ -83,12 +83,12 @@ wss.on("connection", (socket: WebSocketWithSettings) => {
         parsedMessage.sessionInfo.requestedFields;
       if (iracing.sessionInfo) {
         socket.send(
-          JSON.stringify(
-            getFields(
+          JSON.stringify({
+            sessionInfo: getFields(
               iracing.sessionInfo.data,
               parsedMessage.sessionInfo.requestedFields
-            )
-          )
+            ),
+          })
         );
       }
     }
