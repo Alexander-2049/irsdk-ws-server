@@ -2,7 +2,8 @@
   "name": "irsdk-ws",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/iRacingSDKWebsocketServer.ts",
+  "types": "dist/iRacingSDKWebsocketServer.d.ts",
   "scripts": {
     "dev": "nodemon --exec ts-node ./src/index.ts",
     "test": "jest",
