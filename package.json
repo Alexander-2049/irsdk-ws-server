@@ -1,5 +1,5 @@
 {
-  "name": "irsdk-ws",
+  "name": "irsdk-wss",
   "version": "1.0.0",
   "description": "",
   "main": "dist/iRacingSDKWebsocketServer.ts",
