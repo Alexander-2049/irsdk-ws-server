@@ -116,7 +116,16 @@ export class iRacingSDKWebsocketServer {
 
     iracing.on("SessionInfo", (sessionEvent) => {
       this.wss.clients.forEach((socket) => {
-        socket.send(JSON.stringify({ sessionInfo: sessionEvent }));
+        const clientSettings =
+          (socket as unknown as WebSocketWithSettings)?.settings ||
+          defaultClientSettings;
+
+        if (clientSettings.sessionInfo.requestedFields.length === 0) return;
+        const fields = getFields(
+          sessionEvent.data,
+          clientSettings.sessionInfo.requestedFields
+        );
+        socket.send(JSON.stringify({ telemetry: fields }));
       });
     });
 
