@@ -106,11 +106,19 @@ export class iRacingSDKWebsocketServer {
           defaultClientSettings;
 
         if (clientSettings.telemetry.requestedFields.length === 0) return;
-        const fields = getFields(
-          telemetryEvent.data,
-          clientSettings.telemetry.requestedFields
-        );
-        socket.send(JSON.stringify({ telemetry: fields }));
+        if (clientSettings.telemetry.requestedFields[0] === "*") {
+          socket.send(
+            JSON.stringify({
+              telemetry: telemetryEvent.data,
+            })
+          );
+        } else {
+          const fields = getFields(
+            telemetryEvent.data,
+            clientSettings.telemetry.requestedFields
+          );
+          socket.send(JSON.stringify({ telemetry: fields }));
+        }
       });
     });
 
@@ -121,11 +129,19 @@ export class iRacingSDKWebsocketServer {
           defaultClientSettings;
 
         if (clientSettings.sessionInfo.requestedFields.length === 0) return;
-        const fields = getFields(
-          sessionEvent.data,
-          clientSettings.sessionInfo.requestedFields
-        );
-        socket.send(JSON.stringify({ telemetry: fields }));
+        if (clientSettings.sessionInfo.requestedFields[0] === "*") {
+          socket.send(
+            JSON.stringify({
+              sessionInfo: sessionEvent.data,
+            })
+          );
+        } else {
+          const fields = getFields(
+            sessionEvent.data,
+            clientSettings.sessionInfo.requestedFields
+          );
+          socket.send(JSON.stringify({ sessionInfo: fields }));
+        }
       });
     });
 
