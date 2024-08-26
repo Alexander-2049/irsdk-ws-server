@@ -71,13 +71,32 @@ class iRacingSDKWebsocketServer {
                     defaultClientSettings;
                 if (clientSettings.telemetry.requestedFields.length === 0)
                     return;
-                const fields = (0, utils_1.getFields)(telemetryEvent.data, clientSettings.telemetry.requestedFields);
-                socket.send(JSON.stringify({ telemetry: fields }));
+                if (clientSettings.telemetry.requestedFields[0] === "*") {
+                    socket.send(JSON.stringify({
+                        telemetry: telemetryEvent.data,
+                    }));
+                }
+                else {
+                    const fields = (0, utils_1.getFields)(telemetryEvent.data, clientSettings.telemetry.requestedFields);
+                    socket.send(JSON.stringify({ telemetry: fields }));
+                }
             });
         });
         iracing.on("SessionInfo", (sessionEvent) => {
             this.wss.clients.forEach((socket) => {
-                socket.send(JSON.stringify({ sessionInfo: sessionEvent }));
+                const clientSettings = (socket === null || socket === void 0 ? void 0 : socket.settings) ||
+                    defaultClientSettings;
+                if (clientSettings.sessionInfo.requestedFields.length === 0)
+                    return;
+                if (clientSettings.sessionInfo.requestedFields[0] === "*") {
+                    socket.send(JSON.stringify({
+                        sessionInfo: sessionEvent.data,
+                    }));
+                }
+                else {
+                    const fields = (0, utils_1.getFields)(sessionEvent.data, clientSettings.sessionInfo.requestedFields);
+                    socket.send(JSON.stringify({ sessionInfo: fields }));
+                }
             });
         });
         iracing.on("Connected", () => {
